@@ -165,17 +165,17 @@ def create_entities(DATABASE: str, k: int):
         start_score = 0
         e = [dict(), dict(), start_score]
         lessons1 = lessons.copy()
-        times_by_gr = times_by_group(DATABASE)
-        times_by_clrms = classrooms_by_times(DATABASE)
-        times_by_tchrs = times_by_teachers()
+        times_by_gr = times_by_group(DATABASE)  # cписок доступных времен у групп
+        times_by_clrms = classrooms_by_times(DATABASE)  # cписок доступных времен у аудиторий
+        times_by_tchrs = times_by_teachers()  # cписок доступных времен у учителей
         for i in range(len(lessons)):
             if lessons1:  # занятия не повторяются
                 index = random.randrange(len(lessons1))
                 l = lessons1.pop(index)
             # подумать над сдвоенными
             # и один раз в две недели
-                e[0][l] = list()
-                e[1][l] = list()
+                e[0][l] = list()  # первый ген особи (ЗАНЯТИЕ - ВРЕМЯ)
+                e[1][l] = list()  # второй ген особи (ЗАНЯТИЕ - АУДИТОРИЯ)
                 for j in range(l.hours):
                     count = 0
                     # while True:
@@ -187,6 +187,7 @@ def create_entities(DATABASE: str, k: int):
                             times_by_tchrs[l.teacher].remove(t)
                             break
                         if count > 35:
+                            print("NEVOZMOZHNO.....")
                             break
                         count += 1
                     count = 0
@@ -196,7 +197,7 @@ def create_entities(DATABASE: str, k: int):
                         count += 1
                         # c = random.choice(types_dict[l.clrms]) # !!! ДОБАВИТЬ РАЗМЕРЫ АУДИТОРИЙ !!!
                         if t in times_by_clrms[c]:
-                            print(t)
+                            #print(t)
                             times_by_clrms[c].remove(t)
                             break
                         # if count > 35:
@@ -215,7 +216,7 @@ def create_entities(DATABASE: str, k: int):
                     e[1][l].append(c)
                 # e[0].append({l: t})  # занятия к времени
                 # e[1].append({l: c})  # занятия к аудиториям
-        entities.append(e)
+        entities.append(e)  # добавляю созданную особь в список всех особей
 
     # for e in entities:
     #     print("НАЧАЛО ОСОБИ")
@@ -227,9 +228,9 @@ def create_entities(DATABASE: str, k: int):
 
     return entities
 
-def fines(entities):
+def fines(entities):  # функция оценивания особей
     print("Вызвана функция оценивания...")
-    for i in range(len(entities)):
+    for i in range(len(entities)):  # перебираю особи
         entities[i][2] = 0  # задаю изначальный штраф 0
     print("  -Распределение времен занятий по дням недели...")
     times_days = dict()
@@ -340,7 +341,8 @@ def fines(entities):
                             count_blank = 0
                 # print(groups_count[i][g][d])
                 # print(count_total-count_blank)
-                bl = count_total - count_blank
+                # bl = count_total - count_blank
+                bl = count_blank
                 entities[i][2] += bl * fine_for_blank_students
                 # В отличии от формулы в статье повторно накладки НЕ учитываются
 
@@ -409,7 +411,7 @@ def mutation(ent1):
             e_new[1][lesson].append(c)
     return e_new
 
-def new_ent(ent):
+def new_ent(ent):  # функция глубокого "копирования" особи
     e_new = list()
     e_new.append(dict())
     e_new.append(dict())
@@ -442,8 +444,8 @@ for e in range(len(entities)):
 min_start = entities[0][2]
 
 def loop(entities):
-    n = 10  # количество выбираемых лучших особей
-    for i in range(k-n):  # количество "пустых ячеек" для новых  особей
+    n = 20  # количество выбираемых лучших особей
+    for i in range(k-n):  # количество "пустых ячеек" для новых особей
         e_ind = random.randrange(n)  # индекс основы для новой особи
         e_base = new_ent(entities[e_ind])
         r = list(range(n))  # список индексов скрещиваемых особей
@@ -462,7 +464,7 @@ def loop(entities):
     entities = fines(entities)
     return entities
     
-for i in range(0):
+for i in range(0):  # количество проходов
     print(i, "...")
     entities = loop(entities)
 entities = fines(entities)
