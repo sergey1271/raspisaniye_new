@@ -1,9 +1,10 @@
 from database_create import get_times, get_classrooms, get_studyplan, \
     get_teachers, get_groups_for_count_lessons, get_days, get_classrooms_by_subject, \
     get_type_id_by_subject, get_types, get_classrooms_by_type_id, get_max_time, \
-    get_classes_id
+    get_classes_id, get_classes
 import random, time
 from random import shuffle
+from export_timetable import export_timetable
 start_time = time.time()
 DATABASE = "1234.db"
 class Time:
@@ -180,18 +181,24 @@ def create_entities(DATABASE: str, k: int):
                     count = 0
                     # while True:
                     shuffle(times_by_gr[l.groups[0]])
+                    shuffle(times_by_gr[l.groups[0]])
+                    shuffle(times_by_gr[l.groups[0]])
+                    shuffle(times_by_gr[l.groups[0]])
                     for t in times_by_gr[l.groups[0]]:
                         #t = random.choice(times_by_gr[l.groups[0]])  # ДОБАВИТЬ УЧИТЫВАНИЕ ДРУГИХ ГРУПП ПО ВРЕМЕНИ
                         if t in times_by_tchrs[l.teacher]:
                             times_by_gr[l.groups[0]].remove(t)
                             times_by_tchrs[l.teacher].remove(t)
                             break
-                        if count > 35:
+                        if count > 40:
                             print("NEVOZMOZHNO.....")
                             break
                         count += 1
                     count = 0
                     # while True:  # выбираю аудиторию, свободную в выбранный промежуток времени
+                    shuffle(types_dict[l.clrms])
+                    shuffle(types_dict[l.clrms])
+                    shuffle(types_dict[l.clrms])
                     shuffle(types_dict[l.clrms])
                     for c in types_dict[l.clrms]:
                         count += 1
@@ -311,7 +318,7 @@ def fines(entities):  # функция оценивания особей
                     entities[i][2] += fine_for_classrooms * (clrms_count[i][cl][t]-1)  # штраф за накладки аудиторий
         # print(entities[i][2]-b)
     print("  -Проверка накладок у учителей...")
-    fine_for_teachers = 10000
+    fine_for_teachers = 100000000
     for i in range((len(entities))):
         b = entities[i][2]
         for teach in teachers_models.values():
@@ -428,7 +435,7 @@ def new_ent(ent):  # функция глубокого "копирования" 
 
 
 
-k=1000
+k=250
 
 times = read_time(DATABASE)
 classrooms = read_classrooms(DATABASE)
@@ -475,6 +482,9 @@ for i in range(len(entities)):
 print("min start:", min_start)
 print("min now:", entities[0][2])
 print("time:", time.time() - start_time)
+
+export_timetable(entities[0 ], "12345.xlsx", DATABASE)
+
 
 # for i in entities[0][0].keys():
 #     if entities[0][0][i][0] != entities[1][0][i][0]:

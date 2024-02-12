@@ -41,7 +41,7 @@ class Main(Resource):
     @jwt_required()
     def get(self):
         return make_response(jsonify(successfully=True), 200)
-api.add_resource(Main, "/")
+api.add_resource(Main, "/") 
 
 # Вход в систему
 # подумать над реализацией (cookie и т.п.)

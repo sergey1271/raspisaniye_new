@@ -123,13 +123,20 @@ def create_db(name: str, dfile) -> None:
             db.commit()
             # clrm_id = db.query(classrooms).filter(classrooms.number == num).first()[0]
 
+def get_subjects(name: str):
+    engine = create_engine("sqlite:///" + name)
+    Base.metadata.create_all(engine)
+    with Session(autoflush=False, bind=engine) as db:
+        sb = db.query(subjects).all()
+    return sb
+
 # Функции возвращают список классов групп (классов) / список их ID
 def get_classes(name: str):
     engine = create_engine("sqlite:///" + name)
     Base.metadata.create_all(engine)
     with Session(autoflush=False, bind=engine) as db:
         cl = db.query(classes).all()
-        return cl
+    return cl
 def get_classes_id(name: str):
     cl = get_classes(name)
     cl_id = list()
@@ -182,7 +189,19 @@ def get_times(name: str):
     for i in cl:
         res[i.day_id].append(i)
     return res
-
+def get_times_by_day_obj(name: str):
+    res = dict()
+    engine = create_engine("sqlite:///" + name)
+    Base.metadata.create_all(engine)
+    with Session(autoflush=False, bind=engine) as db:
+        cl = db.query(Times).all()
+    for i in cl:
+        try:
+            res[i.day_id].append(i)
+        except:
+            res[i.day_id] = list()
+            res[i.day_id].append(i)
+    return res
 def get_times_id(name: str):
     times_id = list()
     engine = create_engine("sqlite:///" + name)
@@ -210,6 +229,12 @@ def get_days(name: str):
         if not i.day_id in days:
             days.append(i.day_id)
     return days
+def get_days_object(name: str):
+    engine = create_engine("sqlite:///" + name)
+    Base.metadata.create_all(engine)
+    with Session(autoflush=False, bind=engine) as db:
+        t = db.query(days).all()
+    return t
 
 def get_groups_for_count_lessons(name: str)->dict:
     engine = create_engine("sqlite:///" + name)
@@ -264,6 +289,7 @@ def get_type_id_by_subject(name: str, s: int):
         q1 = connection.execute(query).fetchone()
     t = q1[1]
     return t
+
 def get_types(name: str):
     engine = create_engine("sqlite:///" + name)
     Base.metadata.create_all(engine)
