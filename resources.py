@@ -2,7 +2,12 @@ from flask_restful import Resource, reqparse
 from sqlalchemy.orm import declarative_base, Session
 from sqlalchemy import Column, String, create_engine, Integer
 from passlib.hash import pbkdf2_sha256 as sha256
+from flask_cors import cross_origin
+from flask import request, jsonify, Response
+import simplejson as json
 from flask_jwt_extended import (create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt)
+from database_create import create_db
+from export_timetable import create_file_to_user
 DATABASE = 'REGISTRATION.db'
 Base = declarative_base()
 
@@ -33,12 +38,13 @@ class RevokedTokenModel(Base):
         return bool(query)
 
 parser = reqparse.RequestParser()
-parser.add_argument('username', help = 'This field cannot be blank', required = True)
-parser.add_argument('password', help = 'This field cannot be blank', required = True)
+parser.add_argument('username', required = True)
+parser.add_argument('password', required = True)
 
 class UserRegistration(Resource):
     def post(self):
-        data = parser.parse_args()
+        #data = parser.parse_args()
+        data = request.json
         try:
             engine = create_engine("sqlite:///" + DATABASE, echo=True)
             Base.metadata.create_all(engine)
@@ -61,7 +67,8 @@ class UserRegistration(Resource):
 
 class UserLogin(Resource):
     def post(self):
-        data = parser.parse_args()
+        # data = parser.parse_args()
+        data = request.json
         engine = create_engine("sqlite:///" + DATABASE, echo=True)
         Base.metadata.create_all(engine)
         with Session(autoflush=False, bind=engine) as db:
@@ -125,4 +132,45 @@ class SecretResource(Resource):
         return {
             'answer': 42
         }
-      
+
+class Test(Resource):
+    def post(self):
+        print(123)
+        # data = parser.parse_args()
+        data = request.json
+        print(data["username"])
+        return None
+
+class Send_classrooms_groups(Resource):
+    def post(self):
+        # data = parser.parse_args()
+        try:
+            # data = parser.parse_args()
+            
+            data = request.json
+            usrn = data["username"]
+            print(usrn)
+            clrms = data["classrooms"]
+            print(clrms)
+            subj = data["subjects"]
+            print(subj)
+            gr = data["groups"]
+            print(gr)
+            create_db(f'{usrn}.db', gr, clrms, subj)
+            print(12345)
+            return Response(json.dumps({'successfully': 'false'}), status=200, mimetype='application/json')
+        except:
+            return Response(json.dumps({'successfully': 'false'}), status=500, mimetype='application/json')
+
+class Get_excel(Resource):
+    def post(self):
+        # data = parser.parse_args()
+        try:
+            data = request.json
+            print(1234444)
+            print(data["username"])
+            create_file_to_user(f'{data["username"]}.xlsx', f'{data["username"]}.db')
+            return jsonify(successfully=True), 200
+        except:
+            return jsonify(successfully=False), 500
+

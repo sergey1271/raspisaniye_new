@@ -96,18 +96,21 @@ class Times(Base):
     week_id = Column(Integer)
     period = Column(Integer)
 
-def create_db(name: str, dfile) -> None:
+def create_db(name: str, groups: list, classrooms_d: dict, subs: list) -> None:
     # Подключение к БД
     engine = create_engine("sqlite:///" + name)
     Base.metadata.create_all(engine)
     # Чтение файла
-    f1 = open(dfile, "r")
-    lines = f1.readlines()[3:-2]
-    f1.close()
-    for i in lines:
-        num, type = i.split("\t")
-        type = type.strip("\n")
-        with Session(autoflush=False, bind=engine) as db:
+    # f1 = open(dfile, "r")
+    # lines = f1.readlines()[3:-2]
+    # f1.close()
+    
+    with Session(autoflush=False, bind=engine) as db:
+        for clrm in classrooms_d.keys():
+        # num, type = i.split("\t")
+        # type = type.strip("\n")
+            num = clrm
+            type = classrooms_d[clrm]
             tp = clrm_types(type_name=type)
             try:  # пробую добавить в БД
                 db.add(tp)
@@ -122,6 +125,25 @@ def create_db(name: str, dfile) -> None:
             db.add(clrm)
             db.commit()
             # clrm_id = db.query(classrooms).filter(classrooms.number == num).first()[0]
+    with Session(autoflush=False, bind=engine) as db:
+        for gr in groups:
+            group = classes(class_name=gr)
+            try:  # пробую добавить в БД
+                db.add(group)
+                db.commit()
+            except:  # при ошибке возвращаю                
+                db.rollback()
+                pass
+    with Session(autoflush=False, bind=engine) as db:
+        for sb in subs:
+            subject = subjects(subject_name=sb)
+            try:  # пробую добавить в БД
+                db.add(subject)
+                db.commit()
+            except:  # при ошибке возвращаю                
+                db.rollback()
+                pass
+
 
 def get_subjects(name: str):
     engine = create_engine("sqlite:///" + name)

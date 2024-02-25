@@ -90,10 +90,10 @@ def format_sheet(name: str, sheet_to_write: str, database: str, lessons: int):
     
     times_to_excel = dict()
     for d in get_days_object(database):
-        sheet.merge_cells(start_row=y0, start_column=x0, end_row=y0+2*lessons, end_column=x0)
+        sheet.merge_cells(start_row=y0, start_column=x0, end_row=y0+2*lessons-1, end_column=x0)
         sheet.cell(row=y0, column=x0).value = d.day_name
         sheet.cell(row=y0, column=x0).alignment = Alignment(textRotation=90, horizontal='center', vertical='center')
-        sheet.cell(row=y0, column=x0).font = Font(bold=True)
+        sheet.cell(row=y0, column=x0).font = Font(size=18, bold=True)
         y01 = y0
         for t in get_times(database)[d.day_id]:
             sheet.merge_cells(start_row=y01, start_column=x0+1, end_row=y01+1, end_column=x0+1)
@@ -103,9 +103,11 @@ def format_sheet(name: str, sheet_to_write: str, database: str, lessons: int):
             sheet.cell(row=y01, column=x0+2).font = Font(bold=True)
             sheet.cell(row=y01, column=x0+1).alignment = Alignment(horizontal='center', vertical='center')
             sheet.cell(row=y01, column=x0+2).alignment = Alignment(horizontal='center', vertical='center', wrapText=True)
+            sheet.cell(row=y01, column=x0+2).border = Border(right=Side(border_style='thin', color='FF000000'))
+            
             times_to_excel[t.time_id] = y01 
             y01 += 2
-        y0 += 2*lessons + 1
+        y0 += 2*lessons
         
     x0 = x00
     y0 = y00
@@ -114,6 +116,7 @@ def format_sheet(name: str, sheet_to_write: str, database: str, lessons: int):
         sheet.merge_cells(start_row=y0-4, start_column=x0+3, end_row=y0-4, end_column=x0+5)
         sheet.cell(row=y0-4, column=x0+3).value = "Предмет"
         sheet.cell(row=y0-4, column=x0+6).value = "Ауд."
+        sheet.cell(row=y0-4, column=x0+6).alignment = Alignment(vertical="center", horizontal="right")
         sheet.merge_cells(start_row=y0-3, start_column=x0+3, end_row=y0-3, end_column=x0+6)
         sheet.cell(row=y0-3, column=x0+3).value = "Учитель"
         sheet.merge_cells(start_row=y0-2, start_column=x0+3, end_row=y0-2, end_column=x0+6)
@@ -121,6 +124,31 @@ def format_sheet(name: str, sheet_to_write: str, database: str, lessons: int):
         sheet.cell(row=y0-2, column=x0+3).value = cl.class_name
         sheet.cell(row=y0-2, column=x0+3).alignment = Alignment(horizontal='center', vertical='center')
         sheet.cell(row=y0-2, column=x0+3).font = Font(bold=True)
+        
+        sheet.merge_cells(start_row=y0-1, start_column=x0+3, end_row=y0-1, end_column=x0+4)
+        sheet.merge_cells(start_row=y0-1, start_column=x0+5, end_row=y0-1, end_column=x0+6)
+        sheet.cell(row=y0-1, column=x0+3).border = Border(bottom=Side(border_style='thick', color='FF000000'))
+        sheet.cell(row=y0-1, column=x0+5).border = Border(bottom=Side(border_style='thick', color='FF000000'))
+        
+        y_t = y0-1
+        for d in get_days_object(database):
+            y_tt = y_t + 2
+            for x in range(lessons-1):
+                sheet.cell(row=y_tt, column=x0+3).border = Border(bottom=Side(border_style='thin', color='FF000000'))
+                sheet.cell(row=y_tt, column=x0+4).border = Border(bottom=Side(border_style='thin', color='FF000000'))
+                sheet.cell(row=y_tt, column=x0+5).border = Border(bottom=Side(border_style='thin', color='FF000000'))
+                sheet.cell(row=y_tt, column=x0+6).border = Border(right=Side(border_style='thin', color='FF000000'), \
+                                                                    bottom=Side(border_style='thin', color='FF000000'))
+                sheet.cell(row=y_tt-1, column=x0+6).border = Border(right=Side(border_style='thin', color='FF000000'))
+                y_tt += 2
+            sheet.cell(row=y_tt, column=x0+6).border = Border(right=Side(border_style='thin', color='FF000000'))
+            sheet.cell(row=y_tt-1, column=x0+6).border = Border(right=Side(border_style='thin', color='FF000000'))
+            y_t += 2*lessons
+            sheet.cell(row=y_t, column=x0+3).border = Border(bottom=Side(border_style='thick', color='FF000000'))
+            sheet.cell(row=y_t, column=x0+4).border = Border(bottom=Side(border_style='thick', color='FF000000'))
+            sheet.cell(row=y_t, column=x0+5).border = Border(bottom=Side(border_style='thick', color='FF000000'))
+            sheet.cell(row=y_t, column=x0+6).border = Border(bottom=Side(border_style='thick', color='FF000000'), \
+                                                                right=Side(border_style='thin', color='FF000000'))
         x0 += 4
     wb.save(f'data/{name}')
     
@@ -146,6 +174,7 @@ def export_timetable(entity: list, name: str, database: str):
                 sheet.cell(row=y0, column=x0).value = subject.subject_name
                 classroom = next(clrm for clrm in get_classrooms(database) if clrm.classroom_id == e1[l][t].id)
                 sheet.cell(row=y0, column=x0+3).value = classroom.number
+                sheet.cell(row=y0, column=x0+3).alignment = Alignment(vertical="center", horizontal="right")
                 sheet.merge_cells(start_row=y0+1, start_column=x0, end_row=y0+1, end_column=x0+3)
                 sheet.cell(row=y0+1, column=x0).value = get_teachers(database)[l.teacher.id].teacher_name
                

@@ -148,6 +148,76 @@ def times_by_teachers():
     return res    
 
 
+def to_create_one_entity(lessons):
+    start_score = 0
+    e = [dict(), dict(), start_score]
+    lessons1 = lessons.copy()
+    times_by_gr = times_by_group(DATABASE)  # cписок доступных времен у групп
+    times_by_clrms = classrooms_by_times(DATABASE)  # cписок доступных времен у аудиторий
+    times_by_tchrs = times_by_teachers()  # cписок доступных времен у учителей
+    for i in range(len(lessons)):
+        if lessons1:  # занятия не повторяются
+            index = random.randrange(len(lessons1))
+            l = lessons1.pop(index)
+        # подумать над сдвоенными
+        # и один раз в две недели
+            e[0][l] = list()  # первый ген особи (ЗАНЯТИЕ - ВРЕМЯ)
+            e[1][l] = list()  # второй ген особи (ЗАНЯТИЕ - АУДИТОРИЯ)
+            for j in range(l.hours):
+                count = 0
+                # while True:
+                shuffle(times_by_gr[l.groups[0]])
+                shuffle(times_by_gr[l.groups[0]])
+                # shuffle(times_by_gr[l.groups[0]])
+                # shuffle(times_by_gr[l.groups[0]])
+                # новое
+                # for t in times_by_gr[l.groups[0]]:
+                #     #t = random.choice(times_by_gr[l.groups[0]])  # ДОБАВИТЬ УЧИТЫВАНИЕ ДРУГИХ ГРУПП ПО ВРЕМЕНИ
+                #     if t in times_by_tchrs[l.teacher]:
+                #         times_by_gr[l.groups[0]].remove(t)
+                #         times_by_tchrs[l.teacher].remove(t)
+                #         break
+                #     if count > 35:
+                #         print("NEVOZMOZHNO.....")
+                #         break
+                #     count += 1
+                # конец нового
+                h = list(set(times_by_gr[l.groups[0]]) & set(times_by_tchrs[l.teacher]))
+                if len(h) > 0: 
+                    t = random.choice(h)
+                    times_by_gr[l.groups[0]].remove(t)
+                    times_by_tchrs[l.teacher].remove(t)
+                else:
+                    return to_create_one_entity(lessons)
+                count = 0
+                # while True:  # выбираю аудиторию, свободную в выбранный промежуток времени
+                shuffle(types_dict[l.clrms])
+                shuffle(types_dict[l.clrms])
+                # shuffle(types_dict[l.clrms])
+                # shuffle(types_dict[l.clrms])
+                for c in types_dict[l.clrms]:
+                    count += 1
+                    # c = random.choice(types_dict[l.clrms]) # !!! ДОБАВИТЬ РАЗМЕРЫ АУДИТОРИЙ !!!
+                    if t in times_by_clrms[c]:
+                        #print(t)
+                        times_by_clrms[c].remove(t)
+                        break
+                    # if count > 35:
+                    #     count = 0
+                    #     count_t = 0
+                    #     while True:
+                    #         t = random.choice(times_by_gr[l.groups[0]])  # ДОБАВИТЬ УЧИТЫВАНИЕ ДРУГИХ ГРУПП ПО ВРЕМЕНИ
+                    #         if t not in times_by_tchrs[l.teacher]:
+                    #             times_by_gr[l.groups[0]].remove(t)
+                    #             break
+                    #         if count_t > 35:
+                    #             break
+                    #         count_t += 1
+                        
+                e[0][l].append(t)
+                e[1][l].append(c)
+    return e
+
 def create_entities(DATABASE: str, k: int):
     print("Создание объектов ЗАНЯТИЕ...")
     teachers = get_teachers(DATABASE)  # словарь id - объект 'учитель'
@@ -163,67 +233,10 @@ def create_entities(DATABASE: str, k: int):
     # k = 7  # количество особей
     entities = list()
     for i in range(k):
-        start_score = 0
-        e = [dict(), dict(), start_score]
-        lessons1 = lessons.copy()
-        times_by_gr = times_by_group(DATABASE)  # cписок доступных времен у групп
-        times_by_clrms = classrooms_by_times(DATABASE)  # cписок доступных времен у аудиторий
-        times_by_tchrs = times_by_teachers()  # cписок доступных времен у учителей
-        for i in range(len(lessons)):
-            if lessons1:  # занятия не повторяются
-                index = random.randrange(len(lessons1))
-                l = lessons1.pop(index)
-            # подумать над сдвоенными
-            # и один раз в две недели
-                e[0][l] = list()  # первый ген особи (ЗАНЯТИЕ - ВРЕМЯ)
-                e[1][l] = list()  # второй ген особи (ЗАНЯТИЕ - АУДИТОРИЯ)
-                for j in range(l.hours):
-                    count = 0
-                    # while True:
-                    shuffle(times_by_gr[l.groups[0]])
-                    shuffle(times_by_gr[l.groups[0]])
-                    shuffle(times_by_gr[l.groups[0]])
-                    shuffle(times_by_gr[l.groups[0]])
-                    for t in times_by_gr[l.groups[0]]:
-                        #t = random.choice(times_by_gr[l.groups[0]])  # ДОБАВИТЬ УЧИТЫВАНИЕ ДРУГИХ ГРУПП ПО ВРЕМЕНИ
-                        if t in times_by_tchrs[l.teacher]:
-                            times_by_gr[l.groups[0]].remove(t)
-                            times_by_tchrs[l.teacher].remove(t)
-                            break
-                        if count > 40:
-                            print("NEVOZMOZHNO.....")
-                            break
-                        count += 1
-                    count = 0
-                    # while True:  # выбираю аудиторию, свободную в выбранный промежуток времени
-                    shuffle(types_dict[l.clrms])
-                    shuffle(types_dict[l.clrms])
-                    shuffle(types_dict[l.clrms])
-                    shuffle(types_dict[l.clrms])
-                    for c in types_dict[l.clrms]:
-                        count += 1
-                        # c = random.choice(types_dict[l.clrms]) # !!! ДОБАВИТЬ РАЗМЕРЫ АУДИТОРИЙ !!!
-                        if t in times_by_clrms[c]:
-                            #print(t)
-                            times_by_clrms[c].remove(t)
-                            break
-                        # if count > 35:
-                        #     count = 0
-                        #     count_t = 0
-                        #     while True:
-                        #         t = random.choice(times_by_gr[l.groups[0]])  # ДОБАВИТЬ УЧИТЫВАНИЕ ДРУГИХ ГРУПП ПО ВРЕМЕНИ
-                        #         if t not in times_by_tchrs[l.teacher]:
-                        #             times_by_gr[l.groups[0]].remove(t)
-                        #             break
-                        #         if count_t > 35:
-                        #             break
-                        #         count_t += 1
-                            
-                    e[0][l].append(t)
-                    e[1][l].append(c)
-                # e[0].append({l: t})  # занятия к времени
-                # e[1].append({l: c})  # занятия к аудиториям
+        shuffle(lessons)
+        e = to_create_one_entity(lessons)
         entities.append(e)  # добавляю созданную особь в список всех особей
+        print(k-i, "...")
 
     # for e in entities:
     #     print("НАЧАЛО ОСОБИ")
@@ -435,7 +448,7 @@ def new_ent(ent):  # функция глубокого "копирования" 
 
 
 
-k=250
+k=35
 
 times = read_time(DATABASE)
 classrooms = read_classrooms(DATABASE)
@@ -451,7 +464,7 @@ for e in range(len(entities)):
 min_start = entities[0][2]
 
 def loop(entities):
-    n = 20  # количество выбираемых лучших особей
+    n = 10  # количество выбираемых лучших особей
     for i in range(k-n):  # количество "пустых ячеек" для новых особей
         e_ind = random.randrange(n)  # индекс основы для новой особи
         e_base = new_ent(entities[e_ind])
@@ -467,14 +480,14 @@ def loop(entities):
                     # if random.randrange(1) == 1:
                         # e_new = mutation(e_new)
                     # entities = sorted(entities, key=lambda e: e[2])  # ????
-                entities[i+n] = e_new
+                    entities[i+n] = e_new
     entities = fines(entities)
     return entities
     
 for i in range(0):  # количество проходов
     print(i, "...")
     entities = loop(entities)
-entities = fines(entities)
+# entities = fines(entities)  # Закоментировал, чтобы не было повторной оценки штрафов
 entities = sorted(entities, key=lambda e: e[2])
 print("ШТРАФЫ:")
 for i in range(len(entities)):
@@ -483,7 +496,7 @@ print("min start:", min_start)
 print("min now:", entities[0][2])
 print("time:", time.time() - start_time)
 
-export_timetable(entities[0 ], "12345.xlsx", DATABASE)
+export_timetable(entities[0], "12345.xlsx", DATABASE)
 
 
 # for i in entities[0][0].keys():

@@ -5,6 +5,7 @@ from flask_httpauth import HTTPBasicAuth  # аутентификация
 from werkzeug.datastructures import FileStorage  # скачивание файлов на сервер
 import os
 from flask_jwt_extended import JWTManager, jwt_required
+from flask_cors import CORS
 
 app = Flask(__name__)
 app.config['JWT_SECRET_KEY'] = 'jwt-secret-string'
@@ -12,6 +13,7 @@ jwt = JWTManager(app)
 api = Api()
 auth = HTTPBasicAuth()
 app.config['UPLOAD_FOLDER'] = "C:\\Users\\mamin\\Desktop\\JSON_VERSION"
+CORS(app)
 import resources
 
 @jwt.token_in_blocklist_loader
@@ -25,6 +27,8 @@ api.add_resource(resources.UserLogoutAccess, '/logout/access')
 api.add_resource(resources.UserLogoutRefresh, '/logout/refresh')
 api.add_resource(resources.TokenRefresh, '/token/refresh')
 api.add_resource(resources.SecretResource, '/secret')
+api.add_resource(resources.Send_classrooms_groups, '/send')
+api.add_resource(resources.Test, '/test')
 
 # Регистрация пользователя
 # class Registration(Resource):
@@ -78,6 +82,6 @@ api.init_app(app)
 #         create_db(db_name, dfile)
 #         return render_template("get_info.html")
         
-
+# !!!!! ВВОД ТИПОВ
 if __name__ == '__main__':
     app.run(debug = True)
