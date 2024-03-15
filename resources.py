@@ -3,11 +3,13 @@ from sqlalchemy.orm import declarative_base, Session
 from sqlalchemy import Column, String, create_engine, Integer
 from passlib.hash import pbkdf2_sha256 as sha256
 from flask_cors import cross_origin
-from flask import request, jsonify, Response
+from flask import request, jsonify, Response, url_for, send_file, send_from_directory
 import simplejson as json
 from flask_jwt_extended import (create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt)
 from database_create import create_db
-from export_timetable import create_file_to_user
+from export_timetable import create_file_to_user, read_file
+from werkzeug import datastructures
+import os
 DATABASE = 'REGISTRATION.db'
 Base = declarative_base()
 
@@ -148,29 +150,39 @@ class Send_classrooms_groups(Resource):
             # data = parser.parse_args()
             
             data = request.json
-            usrn = data["username"]
-            print(usrn)
             clrms = data["classrooms"]
             print(clrms)
-            subj = data["subjects"]
-            print(subj)
-            gr = data["groups"]
-            print(gr)
-            create_db(f'{usrn}.db', gr, clrms, subj)
+            create_db(f'{data["username"]}.db', data["groups"], data["classrooms"], data["subjects"], data['teachers'])
             print(12345)
-            return Response(json.dumps({'successfully': 'false'}), status=200, mimetype='application/json')
+            return Response(json.dumps({'successfully': 'true'}), status=200, mimetype='application/json')
         except:
             return Response(json.dumps({'successfully': 'false'}), status=500, mimetype='application/json')
 
 class Get_excel(Resource):
     def post(self):
+        print("-----------------------------------------")
         # data = parser.parse_args()
         try:
             data = request.json
             print(1234444)
             print(data["username"])
             create_file_to_user(f'{data["username"]}.xlsx', f'{data["username"]}.db')
-            return jsonify(successfully=True), 200
+            return send_file('data/lyceum1524.xlsx', download_name="12344.xlsx", as_attachment=True)
         except:
-            return jsonify(successfully=False), 500
+            return jsonify(successfully=False)
+    def get(self):
+        print("Был GET запрос")
+        return send_file('data/lyceum1524.xlsx', download_name="12344.xlsx")
 
+class ReadFile(Resource):
+    def post(self):
+        # data = parser.parse_args()
+        try:
+            file = request.files['file']
+            data = request.form
+            print(data["username"])
+            print(file)
+            file.save(os.path.join("uploads", f'{data["username"]}.xlsx'))
+            read_file(f'uploads/{data["username"]}.xlsx', f'{data["username"]}.db')
+        except Exception as e:
+            print(e)

@@ -27,8 +27,8 @@ teachers_subjects = Table(
 studyplan = Table(
     "studyplan",
     Base.metadata,
-    Column("group", Integer),
-    Column("subject_is", Integer, ForeignKey("subjects.subject_id")),
+    Column("group", Integer,ForeignKey("classes.class_id")),
+    Column("subject_id", Integer, ForeignKey("subjects.subject_id")),
     Column("lessons", Integer),
     Column("difficulty", Integer),
     Column("teacher_id", Integer, ForeignKey("teachers.teacher_id")),
@@ -96,7 +96,16 @@ class Times(Base):
     week_id = Column(Integer)
     period = Column(Integer)
 
-def create_db(name: str, groups: list, classrooms_d: dict, subs: list) -> None:
+def add_studyplan(name: str, group: str, lessons: str, teacher: str, subject: str):
+    engine = create_engine("sqlite:///" + name)
+    Base.metadata.create_all(engine)
+    with Session(autoflush=False, bind=engine) as db:
+        insert_stmnt = studyplan.insert().values(group=group, subject_id=subject, lessons=lessons, teacher_id=teacher)
+        db.execute(insert_stmnt)
+        db.commit()
+        
+
+def create_db(name: str, groups: list, classrooms_d: dict, subs: list, techrs: list) -> None:
     # Подключение к БД
     engine = create_engine("sqlite:///" + name)
     Base.metadata.create_all(engine)
@@ -105,23 +114,29 @@ def create_db(name: str, groups: list, classrooms_d: dict, subs: list) -> None:
     # lines = f1.readlines()[3:-2]
     # f1.close()
     
+    # with Session(autoflush=False, bind=engine) as db:
+    #     for clrm in classrooms_d.keys():
+    #     # num, type = i.split("\t")
+    #     # type = type.strip("\n")
+    #         num = clrm
+    #         type = classrooms_d[clrm]
+    #         tp = clrm_types(type_name=type)
+    #         try:  # пробую добавить в БД
+    #             db.add(tp)
+    #             db.commit()
+    #         except:  # при ошибке возвращаю                
+    #             db.rollback()
+    #             pass
+    #         # Узнаю clrm_type_id
+    #         tp_id = db.query(clrm_types).filter(clrm_types.type_name == type).first().clrm_type_id
+    #         # Добавляю новую аудиторию
+    #         clrm = classrooms(number=num, clrm_type_id=tp_id)
+    #         db.add(clrm)
+    #         db.commit()
+    #         # clrm_id = db.query(classrooms).filter(classrooms.number == num).first()[0]
     with Session(autoflush=False, bind=engine) as db:
-        for clrm in classrooms_d.keys():
-        # num, type = i.split("\t")
-        # type = type.strip("\n")
-            num = clrm
-            type = classrooms_d[clrm]
-            tp = clrm_types(type_name=type)
-            try:  # пробую добавить в БД
-                db.add(tp)
-                db.commit()
-            except:  # при ошибке возвращаю                
-                db.rollback()
-                pass
-            # Узнаю clrm_type_id
-            tp_id = db.query(clrm_types).filter(clrm_types.type_name == type).first().clrm_type_id
-            # Добавляю новую аудиторию
-            clrm = classrooms(number=num, clrm_type_id=tp_id)
+        for clrm in classrooms_d:
+            clrm = classrooms(number=clrm, clrm_type_id=1)
             db.add(clrm)
             db.commit()
             # clrm_id = db.query(classrooms).filter(classrooms.number == num).first()[0]
@@ -143,7 +158,15 @@ def create_db(name: str, groups: list, classrooms_d: dict, subs: list) -> None:
             except:  # при ошибке возвращаю                
                 db.rollback()
                 pass
-
+    with Session(autoflush=False, bind=engine) as db:
+        for tc in techrs:
+            teacher = teachers(teacher_name=tc)
+            try:  # пробую добавить в БД
+                db.add(teacher)
+                db.commit()
+            except:  # при ошибке возвращаю                
+                db.rollback()
+                pass
 
 def get_subjects(name: str):
     engine = create_engine("sqlite:///" + name)
@@ -339,4 +362,33 @@ def get_max_time(name: str, g: int):
         cl = db.query(classes).filter(classes.class_id==g).first()
     return cl.max_time
 # print(get_classrooms_by_type_id("1234.db", 1))
-    
+
+def get_groups_ids_by_name(name):
+    engine = create_engine("sqlite:///" + name)
+    Base.metadata.create_all(engine)
+    with Session(autoflush=False, bind=engine) as db:
+        cl = db.query(classes).all()
+    res = dict()
+    for c in cl:
+        res[c.class_name] = c.class_id
+    return res
+
+def get_subject_ids_by_name(name):
+    engine = create_engine("sqlite:///" + name)
+    Base.metadata.create_all(engine)
+    with Session(autoflush=False, bind=engine) as db:
+        cl = db.query(subjects).all()
+    res = dict()
+    for c in cl:
+        res[c.subject_name] = c.subject_id
+    return res
+
+def get_teachers_ids_by_name(name):
+    engine = create_engine("sqlite:///" + name)
+    Base.metadata.create_all(engine)
+    with Session(autoflush=False, bind=engine) as db:
+        cl = db.query(teachers).all()
+    res = dict()
+    for c in cl:
+        res[c.teacher_name] = c.teacher_id
+    return res

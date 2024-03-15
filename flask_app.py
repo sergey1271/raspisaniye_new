@@ -28,6 +28,8 @@ api.add_resource(resources.UserLogoutRefresh, '/logout/refresh')
 api.add_resource(resources.TokenRefresh, '/token/refresh')
 api.add_resource(resources.SecretResource, '/secret')
 api.add_resource(resources.Send_classrooms_groups, '/send')
+api.add_resource(resources.Get_excel, '/get_excel')
+api.add_resource(resources.ReadFile, '/read-file')
 api.add_resource(resources.Test, '/test')
 
 # Регистрация пользователя

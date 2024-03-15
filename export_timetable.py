@@ -1,6 +1,7 @@
 import openpyxl
 from openpyxl.styles import Alignment, Border, Side, Font
-from database_create import get_classes, get_subjects, get_days_object, get_times, get_classrooms, get_teachers
+from openpyxl.worksheet.datavalidation import DataValidation
+from database_create import get_classes, get_subjects, get_days_object, get_times, get_classrooms, get_teachers, add_studyplan, get_groups_ids_by_name, get_subject_ids_by_name, get_teachers_ids_by_name
 DATABASE = "1234.db"
 
 
@@ -47,20 +48,58 @@ def create_file_to_user(name: str, database: str):
     uchitelya = "Учителя"
     create_sheet(name, uch_plan)
     create_sheet(name, uchitelya)
-    write_classes(name, uch_plan, get_classes(database))
-    write_subjects(name, uch_plan, get_subjects(database))
-    write_classes(name, uchitelya, get_classes(database))
-    write_subjects(name, uchitelya, get_subjects(database))
+    classes = get_classes(database)
+    subjects = get_subjects(database)
+    write_classes(name, uch_plan, classes)
+    write_subjects(name, uch_plan, subjects)
+    write_classes(name, uchitelya, classes)
+    write_subjects(name, uchitelya, subjects)
     wb = openpyxl.load_workbook(filename = f'data/{name}')
     sheet = wb[uch_plan]
-    sheet.cell(row=2, column=4).value = "Кол-во уроков в день макс."
-    sheet.cell(row=2, column=4).alignment = Alignment(textRotation=90)
-    sheet.cell(row=2, column=4).border = Border(bottom=Side(border_style='medium', color='FF000000'))
+    y0 = 2
+    x0 = 4
+    sheet.cell(row=y0, column=x0).value = "Кол-во уроков в день макс."
+    sheet.cell(row=y0, column=x0).alignment = Alignment(textRotation=90)
+    sheet.cell(row=y0, column=x0).border = Border(bottom=Side(border_style='medium', color='FF000000'))
     sheet = wb[uchitelya]
-    sheet.cell(row=2, column=4).value = "Классный руководитель"
-    sheet.cell(row=2, column=4).alignment = Alignment(textRotation=90)
-    sheet.cell(row=2, column=4).border = Border(bottom=Side(border_style='medium', color='FF000000'))
+    sheet.column_dimensions['A'].hidden= True  # скрываю столбец со списком учителей
+    y00 = 2
+    for tch in get_teachers(database, True):  # записываю список учителей
+        sheet.cell(row=y00, column=1).value = tch.teacher_name
+        y00 += 1
+    data_val = DataValidation(type="list",formula1='=$A:$A', showErrorMessage=True) #You can change =$A:$A with a smaller range like =A1:A9
+    sheet.add_data_validation(data_val)
+    for i in range(len(classes)):
+        for j in range(len(subjects)):
+            data_val.add(sheet.cell(row=y0+1+i, column=x0+1+j))  # добавлюя проверку данных
+    sheet.cell(row=y0, column=x0).value = "Классный руководитель"
+    sheet.cell(row=y0, column=x0).alignment = Alignment(textRotation=90)
+    sheet.cell(row=y0, column=x0).border = Border(bottom=Side(border_style='medium', color='FF000000'))
     wb.save(f'data/{name}')
+
+def read_file(name: str, database: str):
+    uch_plan = "Учебный план"
+    uchitelya = "Учителя"
+    groups = get_classes(database)
+    subjects = get_subjects(database)
+    wb = openpyxl.load_workbook(filename = f'{name}')
+    groups_ids = get_groups_ids_by_name(database)
+    subjects_ids = get_subject_ids_by_name(database)
+    teachers_ids = get_teachers_ids_by_name(database)
+    y0, x0 = 3, 5
+    for gr in range(y0, y0+len(groups)):
+        for sb in range(x0, x0+len(subjects)):
+            sheet = wb[uch_plan]
+            lessons = sheet.cell(gr, sb).value
+            if lessons == 0 or lessons == None:
+                continue
+            print(sheet.cell(gr, x0-2).value)
+            group = groups_ids[sheet.cell(gr, x0-2).value]
+            subject = subjects_ids[sheet.cell(y0-1, sb).value]
+            sheet = wb[uchitelya]
+            teacher = teachers_ids[sheet.cell(gr, sb).value]
+            add_studyplan(database, group, lessons, teacher, subject)
+    
 
 def format_sheet(name: str, sheet_to_write: str, database: str, lessons: int):
     x0 = 3
@@ -180,5 +219,6 @@ def export_timetable(entity: list, name: str, database: str):
                
     wb.save(f'data/{name}')
 
-create_file_to_user("1234.xlsx", DATABASE)
+# create_file_to_user("1234.xlsx", DATABASE)
+# read_file(f'1234.xlsx', 'test.db')
 #export_timetable([1, 2, 3], "12345.xlsx", DATABASE)
