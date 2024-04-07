@@ -1,7 +1,7 @@
 import openpyxl
 from openpyxl.styles import Alignment, Border, Side, Font
 from openpyxl.worksheet.datavalidation import DataValidation
-from database_create import get_classes, get_subjects, get_days_object, get_times, get_classrooms, get_teachers, add_studyplan, get_groups_ids_by_name, get_subject_ids_by_name, get_teachers_ids_by_name
+from database_create import get_classes, get_subjects, get_days_object, get_times, get_classrooms, get_teachers, add_studyplan, get_groups_ids_by_name, get_subject_ids_by_name, get_teachers_ids_by_name, add_types, add_types_for_classrooms, add_types_for_subjects
 DATABASE = "1234.db"
 
 
@@ -46,8 +46,10 @@ def create_file_to_user(name: str, database: str):
     create_wb(name)
     uch_plan = "Учебный план"
     uchitelya = "Учителя"
+    tipy_auditoryi = "Типы аудиторий"
     create_sheet(name, uch_plan)
     create_sheet(name, uchitelya)
+    create_sheet(name, tipy_auditoryi)
     classes = get_classes(database)
     subjects = get_subjects(database)
     write_classes(name, uch_plan, classes)
@@ -75,11 +77,40 @@ def create_file_to_user(name: str, database: str):
     sheet.cell(row=y0, column=x0).value = "Классный руководитель"
     sheet.cell(row=y0, column=x0).alignment = Alignment(textRotation=90)
     sheet.cell(row=y0, column=x0).border = Border(bottom=Side(border_style='medium', color='FF000000'))
+    
+    sheet = wb[tipy_auditoryi]
+    classrooms = get_classrooms(database)
+    l = len(classrooms)
+    data_val = DataValidation(type="list",formula1=f'=$B$3:$B$120', showErrorMessage=True) #You can change =$A:$A with a smaller range like =A1:A9
+    sheet.add_data_validation(data_val)
+    y0, x0 = 3, 4
+    sheet.cell(row=y0-1, column=2).value = 'Типы аудиторий\n введите в столбце "B",\nначиная с ячейки B3'
+    sheet.cell(row=y0-1, column=2).alignment = Alignment(wrapText=True)
+    sheet.column_dimensions['B'].width = 20
+    sheet.column_dimensions['E'].width = 20
+    sheet.column_dimensions['G'].width = 20
+    sheet.column_dimensions['H'].width = 20
+    for cl_ind in range(l):
+        cl = classrooms[cl_ind]
+        sheet.cell(row=y0+cl_ind, column=x0).value = cl.number
+        data_val.add(sheet.cell(row=y0+cl_ind, column=x0+1))  # добавлюя проверку данных
+    
+    y0, x0 = 3, 7
+    l = len(subjects)
+    for sb_ind in range(l):
+        sb = subjects[sb_ind]
+        sheet.cell(row=y0+sb_ind, column=x0).value = sb.subject_name
+        data_val.add(sheet.cell(row=y0+sb_ind, column=x0+1))  # добавлюя проверку данных
+    
+    
+    
     wb.save(f'data/{name}')
+    
 
 def read_file(name: str, database: str):
     uch_plan = "Учебный план"
     uchitelya = "Учителя"
+    tipy_auditoryi = "Типы аудиторий"
     groups = get_classes(database)
     subjects = get_subjects(database)
     wb = openpyxl.load_workbook(filename = f'{name}')
@@ -99,6 +130,50 @@ def read_file(name: str, database: str):
             sheet = wb[uchitelya]
             teacher = teachers_ids[sheet.cell(gr, sb).value]
             add_studyplan(database, group, lessons, teacher, subject)
+    # читаю типы аудиторий
+    sheet = wb[tipy_auditoryi]
+    y0=3
+    x0=2
+    types = list()
+    while True:
+        val = sheet.cell(y0, x0).value
+        if not val:
+            break
+        types.append(str(val))
+        y0 += 1
+    types_ids_by_name = add_types(database, types) # {'Большая аудитория': 1, 'ИТ-класс': 2, 'Спортзал': 3, 'Малая аудитория': 4, 'Кабнет биологии': 5}
+    y0=3
+    x0=4  # столбец аудиторий
+    types_by_clrms = dict() # {'208': 2, '108': 1}
+    while True:
+        cl = sheet.cell(y0, x0).value
+        t = sheet.cell(y0, x0+1).value
+        if not (cl and t):
+            break
+        types_by_clrms[cl] = types_ids_by_name[t]
+        y0 += 1
+    add_types_for_classrooms(database, types_by_clrms)  # записываю в БД
+    # Читаю типы аудиторий для предметов
+    y0 = 3
+    x0 = 7  # столбец предметов
+    types_by_subjects = dict()  # {"maths": [1, 2, 3]}
+    while True:
+        sbj = sheet.cell(y0, x0).value
+        t = sheet.cell(y0, x0+1).value
+        if not (sbj and t):
+            break
+        try:
+            types_by_subjects[sbj].append(types_ids_by_name[t])
+        except:
+            types_by_subjects[sbj] = list()
+            types_by_subjects[sbj].append(types_ids_by_name[t])
+        y0 += 1
+    add_types_for_subjects(database, types_by_subjects)
+    
+    
+    
+        
+    
     
 
 def format_sheet(name: str, sheet_to_write: str, database: str, lessons: int):
@@ -220,5 +295,5 @@ def export_timetable(entity: list, name: str, database: str):
     wb.save(f'data/{name}')
 
 # create_file_to_user("1234.xlsx", DATABASE)
-# read_file(f'1234.xlsx', 'test.db')
+read_file(f'data/1234.xlsx', '1234.db')
 #export_timetable([1, 2, 3], "12345.xlsx", DATABASE)

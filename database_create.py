@@ -136,7 +136,7 @@ def create_db(name: str, groups: list, classrooms_d: dict, subs: list, techrs: l
     #         # clrm_id = db.query(classrooms).filter(classrooms.number == num).first()[0]
     with Session(autoflush=False, bind=engine) as db:
         for clrm in classrooms_d:
-            clrm = classrooms(number=clrm, clrm_type_id=1)
+            clrm = classrooms(number=clrm, clrm_type_id=0)
             db.add(clrm)
             db.commit()
             # clrm_id = db.query(classrooms).filter(classrooms.number == num).first()[0]
@@ -167,6 +167,52 @@ def create_db(name: str, groups: list, classrooms_d: dict, subs: list, techrs: l
             except:  # при ошибке возвращаю                
                 db.rollback()
                 pass
+
+def add_types(name: str, types: list) -> dict:  # добавление типов аудиторий в БД по именам в списке
+    engine = create_engine("sqlite:///" + name)
+    Base.metadata.create_all(engine)
+    with Session(autoflush=False, bind=engine) as db:
+        for t in types:
+            type = clrm_types(type_name=t)
+            try:  # пробую добавить в БД
+                db.add(type)
+                db.commit()
+            except:  # при ошибке возвращаю                
+                db.rollback()
+                pass
+    with Session(autoflush=False, bind=engine) as db:
+        cl = db.query(clrm_types).all()
+    r = dict()
+    for i in cl:
+        r[i.type_name] = i.clrm_type_id
+    return r
+
+def add_types_for_classrooms(name: str, d: dict):
+    #classrooms_list = get_classrooms(name)
+    engine = create_engine("sqlite:///" + name)
+    Base.metadata.create_all(bind=engine)
+    classrooms.__table__.drop(engine)
+    classrooms.__table__.create(engine)
+    with Session(autoflush=False, bind=engine) as db:
+        for i in d.keys():
+            #classroom = next(clrm for clrm in classrooms if clrm.classroom_name == i)
+            type = d[i]
+            clrm = classrooms(number=i, clrm_type_id=type)
+            db.add(clrm)
+            db.commit()
+def add_types_for_subjects(name: str, d: dict):
+    engine = create_engine("sqlite:///" + name)
+    Base.metadata.create_all(bind=engine)
+    subjects_clrm_type.drop(engine)
+    subjects_clrm_type.create(engine)
+    with Session(autoflush=False, bind=engine) as db:
+        for i in d.keys():
+            #classroom = next(clrm for clrm in classrooms if clrm.classroom_name == i)
+            type = d[i][0]
+            subjects_by_names = get_subject_ids_by_name(name)
+            insert_stmnt = subjects_clrm_type.insert().values(id_subject=subjects_by_names[i], id_clrm_type=type)
+            db.execute(insert_stmnt)
+            db.commit()
 
 def get_subjects(name: str):
     engine = create_engine("sqlite:///" + name)
