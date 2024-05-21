@@ -6,10 +6,12 @@ from flask_cors import cross_origin
 from flask import request, jsonify, Response, url_for, send_file, send_from_directory
 import simplejson as json
 from flask_jwt_extended import (create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt)
-from database_create import create_db
+from database_create import create_db, add_times
 from export_timetable import create_file_to_user, read_file
 from werkzeug import datastructures
 import os
+import datetime
+from timetable_create import timetable_generation
 DATABASE = 'REGISTRATION.db'
 Base = declarative_base()
 
@@ -79,12 +81,13 @@ class UserLogin(Resource):
             return {'message': 'User {} doesn\'t exist'.format(data['username'])}
         
         if sha256.verify(data['password'], current_user.password):
-            access_token = create_access_token(identity = data['username'])
-            refresh_token = create_refresh_token(identity = data['username'])
+            access_token = create_access_token(identity = data['username'], expires_delta=datetime.timedelta(0, 60))
+            refresh_token = create_refresh_token(identity = data['username'], expires_delta=datetime.timedelta(0, 900))
             return {
                 'message': 'Logged in as {}'.format(current_user.username),
                 'access_token': access_token,
-                'refresh_token': refresh_token
+                'refresh_token': refresh_token,
+                'successfully': 'true'
                 }
         else:
             return {'message': 'Wrong credentials'}
@@ -119,12 +122,11 @@ class TokenRefresh(Resource):
         current_user = get_jwt_identity()
         access_token = create_access_token(identity = current_user, fresh=False)
         refresh_token = create_refresh_token(identity = current_user)
-
         return {
             'access_token': access_token,
             'refresh_token': refresh_token
                 }
-# Добавить обнуление прошлых токенов? Удаление из черного списка по дате добавления?
+# Удаление из черного списка по дате добавления?
 # Срок их действия большой, долгий поиск по базе каждый раз?
 
       
@@ -144,19 +146,17 @@ class Test(Resource):
         return None
 
 class Send_classrooms_groups(Resource):
+    @jwt_required()
     def post(self):
-        # data = parser.parse_args()
         try:
-            # data = parser.parse_args()
-            
             data = request.json
             clrms = data["classrooms"]
             print(clrms)
             create_db(f'{data["username"]}.db', data["groups"], data["classrooms"], data["subjects"], data['teachers'])
             print(12345)
-            return Response(json.dumps({'successfully': 'true'}), status=200, mimetype='application/json')
+            return {'successfully': 'true'}
         except:
-            return Response(json.dumps({'successfully': 'false'}), status=500, mimetype='application/json')
+            return {'successfully': 'false'}
 
 class Get_excel(Resource):
     def post(self):
@@ -164,7 +164,6 @@ class Get_excel(Resource):
         # data = parser.parse_args()
         try:
             data = request.json
-            print(1234444)
             print(data["username"])
             create_file_to_user(f'{data["username"]}.xlsx', f'{data["username"]}.db')
             return send_file('data/lyceum1524.xlsx', download_name="12344.xlsx", as_attachment=True)
@@ -184,5 +183,42 @@ class ReadFile(Resource):
             print(file)
             file.save(os.path.join("uploads", f'{data["username"]}.xlsx'))
             read_file(f'uploads/{data["username"]}.xlsx', f'{data["username"]}.db')
-        except Exception as e:
-            print(e)
+            return {'successfully': 'true'}
+        except:
+            return {'successfully': 'false'}
+
+class Generate(Resource):
+    def post(self):
+        # data = parser.parse_args()
+        try:
+            data = request.json
+            print(data["username"])
+            print(12345)
+            timetable_generation(data["username"])
+            return {'successfully': 'true'}
+        except:
+            return {'successfully': 'false'}
+        
+
+class Download(Resource):
+    def post(self):
+        # data = parser.parse_args()
+        try:
+            data = request.json
+            print(data["username"])
+            return send_file('data/lyceum1524.xlsx', download_name="12344.xlsx", as_attachment=True)
+        except:
+            return send_file(f'data/{data["username"]}_rasp.xlsx', download_name="12344.xlsx")
+
+class SendTimes(Resource):
+    def post(self):
+        # data = parser.parse_args()
+        try:
+            # data = parser.parse_args()
+            
+            data = request.json
+            add_times(f'{data["username"]}.db', data["saturday"], data['starts'], data['finishes'])
+            print(12345)
+            return {'successfully': 'true'}
+        except:
+            return {'successfully': 'false'}

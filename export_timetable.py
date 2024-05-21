@@ -295,5 +295,5 @@ def export_timetable(entity: list, name: str, database: str):
     wb.save(f'data/{name}')
 
 # create_file_to_user("1234.xlsx", DATABASE)
-read_file(f'data/1234.xlsx', '1234.db')
+# read_file(f'data/1234.xlsx', '1234.db')
 #export_timetable([1, 2, 3], "12345.xlsx", DATABASE)

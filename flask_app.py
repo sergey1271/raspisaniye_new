@@ -6,15 +6,15 @@ from werkzeug.datastructures import FileStorage  # скачивание файл
 import os
 from flask_jwt_extended import JWTManager, jwt_required
 from flask_cors import CORS
-
+import resources
 app = Flask(__name__)
+
 app.config['JWT_SECRET_KEY'] = 'jwt-secret-string'
 jwt = JWTManager(app)
 api = Api()
 auth = HTTPBasicAuth()
 app.config['UPLOAD_FOLDER'] = "C:\\Users\\mamin\\Desktop\\JSON_VERSION"
 CORS(app)
-import resources
 
 @jwt.token_in_blocklist_loader
 def check_if_token_in_blocklist(jwt_header, jwt_payload):
@@ -30,7 +30,11 @@ api.add_resource(resources.SecretResource, '/secret')
 api.add_resource(resources.Send_classrooms_groups, '/send')
 api.add_resource(resources.Get_excel, '/get_excel')
 api.add_resource(resources.ReadFile, '/read-file')
+api.add_resource(resources.SendTimes, '/send-times')
 api.add_resource(resources.Test, '/test')
+api.add_resource(resources.Generate, '/generate')
+api.add_resource(resources.Download, '/download')
+
 
 # Регистрация пользователя
 # class Registration(Resource):

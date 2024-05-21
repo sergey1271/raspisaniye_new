@@ -214,6 +214,35 @@ def add_types_for_subjects(name: str, d: dict):
             db.execute(insert_stmnt)
             db.commit()
 
+def add_times(name: str, saturday: bool, times_start: list, times_end: list):
+    days_l = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница"]
+    if saturday:
+        days_l.append("Суббота")
+    engine = create_engine("sqlite:///" + name)
+    Base.metadata.create_all(engine)
+    with Session(autoflush=False, bind=engine) as db:
+        for d in range(len(days_l)):
+            obj = days(day_id=d+1, day_name=days_l[d])
+            try:  # пробую добавить в БД
+                db.add(obj)
+                db.commit()
+            except:  # при ошибке возвращаю                
+                db.rollback()
+                pass
+            c = len(times_start)
+            for i in range(len(times_start)):
+                t = Times(time_id=d*c+i+1, day_id=d+1, start=times_start[i], end=times_end[i], week_id=1, period=i+1)
+                try:  # пробую добавить в БД
+                    db.add(t)
+                    db.commit()
+                except:  # при ошибке возвращаю                
+                    db.rollback()
+                    pass
+                
+    
+                
+    
+
 def get_subjects(name: str):
     engine = create_engine("sqlite:///" + name)
     Base.metadata.create_all(engine)
@@ -438,3 +467,5 @@ def get_teachers_ids_by_name(name):
     for c in cl:
         res[c.teacher_name] = c.teacher_id
     return res
+
+# add_times("lyceum1524.db", True, ['8:45', '9:50', '10:45', '11:45', '12:55', '14:05'], ['9:30', '10:35', '11:35', '12:30', '13:40', '14:50'])

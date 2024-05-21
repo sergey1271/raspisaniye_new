@@ -6,7 +6,6 @@ import random, time
 from random import shuffle
 from export_timetable import export_timetable
 start_time = time.time()
-DATABASE = "1234.db"
 class Time:
     def __init__(self, id: int, week: int, day: int, period: int):
         self.id = id
@@ -110,15 +109,14 @@ def make_teachers_models(DATABASE):
         teachers_models[i.teacher_id] = t
     return teachers_models
 
-def make_types_dict_clrms(DATABASE):
+def make_types_dict_clrms(DATABASE, classrooms):
     print("Распределение аудиторий по типам...")
     types_dict = dict()
     for i in get_types(DATABASE):
         types_dict[i]=create_models_classrooms_by_type_id(DATABASE, i, classrooms)
     return types_dict
 
-def times_by_group(DATABASE):
-    global times
+def times_by_group(DATABASE, times):
     classes = get_classes_id(DATABASE)
     res = dict()
     for cl in classes:
@@ -127,9 +125,7 @@ def times_by_group(DATABASE):
             res[cl].append(t)
     return res
 
-def classrooms_by_times(DATABASE):
-    global classrooms
-    global times
+def classrooms_by_times(DATABASE, times, classrooms):
     res = dict()
     for cl in classrooms:
         res[cl] = list()
@@ -137,9 +133,7 @@ def classrooms_by_times(DATABASE):
             res[cl].append(t)
     return res
 
-def times_by_teachers():
-    global times
-    global teachers_models
+def times_by_teachers(times, teachers_models):
     res = dict()
     for t_id in teachers_models.values():
         res[t_id] = list()
@@ -148,13 +142,13 @@ def times_by_teachers():
     return res    
 
 
-def to_create_one_entity(lessons):
+def to_create_one_entity(DATABASE, lessons, times, classrooms, teachers_models, types_dict):
     start_score = 0
     e = [dict(), dict(), start_score]
     lessons1 = lessons.copy()
-    times_by_gr = times_by_group(DATABASE)  # cписок доступных времен у групп
-    times_by_clrms = classrooms_by_times(DATABASE)  # cписок доступных времен у аудиторий
-    times_by_tchrs = times_by_teachers()  # cписок доступных времен у учителей
+    times_by_gr = times_by_group(DATABASE, times)  # cписок доступных времен у групп
+    times_by_clrms = classrooms_by_times(DATABASE, times, classrooms)  # cписок доступных времен у аудиторий
+    times_by_tchrs = times_by_teachers(times, teachers_models)  # cписок доступных времен у учителей
     for i in range(len(lessons)):
         if lessons1:  # занятия не повторяются
             index = random.randrange(len(lessons1))
@@ -188,7 +182,7 @@ def to_create_one_entity(lessons):
                     times_by_gr[l.groups[0]].remove(t)
                     times_by_tchrs[l.teacher].remove(t)
                 else:
-                    return to_create_one_entity(lessons)
+                    return to_create_one_entity(DATABASE, lessons, times, classrooms)
                 count = 0
                 # while True:  # выбираю аудиторию, свободную в выбранный промежуток времени
                 shuffle(types_dict[l.clrms])
@@ -218,7 +212,7 @@ def to_create_one_entity(lessons):
                 e[1][l].append(c)
     return e
 
-def create_entities(DATABASE: str, k: int):
+def create_entities(DATABASE: str, k: int, teachers_models, times, classrooms, types_dict):
     print("Создание объектов ЗАНЯТИЕ...")
     teachers = get_teachers(DATABASE)  # словарь id - объект 'учитель'
     lessons = list()
@@ -234,7 +228,7 @@ def create_entities(DATABASE: str, k: int):
     entities = list()
     for i in range(k):
         shuffle(lessons)
-        e = to_create_one_entity(lessons)
+        e = to_create_one_entity(DATABASE, lessons, times, classrooms, teachers_models, types_dict)
         entities.append(e)  # добавляю созданную особь в список всех особей
         print(k-i, "...")
 
@@ -248,7 +242,7 @@ def create_entities(DATABASE: str, k: int):
 
     return entities
 
-def fines(entities):  # функция оценивания особей
+def fines(entities, DATABASE, times, classrooms, teachers_models):  # функция оценивания особей
     print("Вызвана функция оценивания...")
     for i in range(len(entities)):  # перебираю особи
         entities[i][2] = 0  # задаю изначальный штраф 0
@@ -446,59 +440,60 @@ def new_ent(ent):  # функция глубокого "копирования" 
     return e_new
         
 
-
-
-k=35
-
-times = read_time(DATABASE)
-classrooms = read_classrooms(DATABASE)
-teachers_models = make_teachers_models(DATABASE)
-types_dict = make_types_dict_clrms(DATABASE)
-entities = create_entities(DATABASE, k)
-entities = fines(entities)
-
-entities = sorted(entities, key=lambda e: e[2])
-print("ШТРАФЫ:")
-for e in range(len(entities)):
-    print(f'{e+1}: {entities[e][2]}')
-min_start = entities[0][2]
-
 def loop(entities):
-    n = 10  # количество выбираемых лучших особей
-    for i in range(k-n):  # количество "пустых ячеек" для новых особей
-        e_ind = random.randrange(n)  # индекс основы для новой особи
-        e_base = new_ent(entities[e_ind])
-        r = list(range(n))  # список индексов скрещиваемых особей
-        if entities[e_ind][2] < 10000:
-            r.pop(e_ind)
-            for j in range(random.randrange(2, 13)):  # выбираю количество скрещиваний (от 2 до 12)
-                # for a in r:  # выбираю вторую скрещиваемую особь
-                a = random.choice(r)
-                if entities[a][2] < 10000:
-                    e_new = crossingover(e_base, entities[a])  # скрещиваю e_new и entities[a]
-                    e_base = new_ent(e_new)
-                    # if random.randrange(1) == 1:
-                        # e_new = mutation(e_new)
-                    # entities = sorted(entities, key=lambda e: e[2])  # ????
-                    entities[i+n] = e_new
-    entities = fines(entities)
-    return entities
+        n = 10  # количество выбираемых лучших особей
+        for i in range(k-n):  # количество "пустых ячеек" для новых особей
+            e_ind = random.randrange(n)  # индекс основы для новой особи
+            e_base = new_ent(entities[e_ind])
+            r = list(range(n))  # список индексов скрещиваемых особей
+            if entities[e_ind][2] < 10000:
+                r.pop(e_ind)
+                for j in range(random.randrange(2, 13)):  # выбираю количество скрещиваний (от 2 до 12)
+                    # for a in r:  # выбираю вторую скрещиваемую особь
+                    a = random.choice(r)
+                    if entities[a][2] < 10000:
+                        e_new = crossingover(e_base, entities[a])  # скрещиваю e_new и entities[a]
+                        e_base = new_ent(e_new)
+                        # if random.randrange(1) == 1:
+                            # e_new = mutation(e_new)
+                        # entities = sorted(entities, key=lambda e: e[2])  # ????
+                        entities[i+n] = e_new
+        entities = fines(entities, DATABASE)
+        return entities
+
+def timetable_generation(name: str):
+    k=35
+    DATABASE = name+".db"
+    times = read_time(DATABASE)
+    classrooms = read_classrooms(DATABASE)
+    teachers_models = make_teachers_models(DATABASE)
+    types_dict = make_types_dict_clrms(DATABASE, classrooms)
+    entities = create_entities(DATABASE, k, teachers_models, times, classrooms, types_dict)
+    entities = fines(entities, DATABASE, times, classrooms, teachers_models)
+
+    entities = sorted(entities, key=lambda e: e[2])
+    print("ШТРАФЫ:")
+    for e in range(len(entities)):
+        print(f'{e+1}: {entities[e][2]}')
+    min_start = entities[0][2]
+
     
-for i in range(0):  # количество проходов
-    print(i, "...")
-    entities = loop(entities)
-# entities = fines(entities)  # Закоментировал, чтобы не было повторной оценки штрафов
-entities = sorted(entities, key=lambda e: e[2])
-print("ШТРАФЫ:")
-for i in range(len(entities)):
-    print(f'{i+1}: {entities[i][2]}')
-print("min start:", min_start)
-print("min now:", entities[0][2])
-print("time:", time.time() - start_time)
+        
+    for i in range(0):  # количество проходов
+        print(i, "...")
+        entities = loop(entities)
+    # entities = fines(entities)  # Закоментировал, чтобы не было повторной оценки штрафов
+    entities = sorted(entities, key=lambda e: e[2])
+    print("ШТРАФЫ:")
+    for i in range(len(entities)):
+        print(f'{i+1}: {entities[i][2]}')
+    print("min start:", min_start)
+    print("min now:", entities[0][2])
+    print("time:", time.time() - start_time)
 
-export_timetable(entities[0], "12345.xlsx", DATABASE)
+    export_timetable(entities[0], name+"_rasp.xlsx", DATABASE)
 
-
+# timetable_generation("lyceum1524")
 # for i in entities[0][0].keys():
 #     if entities[0][0][i][0] != entities[1][0][i][0]:
 #         print(entities[0][0][i][0], entities[1][0][i][0])
